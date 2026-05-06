@@ -30,6 +30,14 @@ final class ConversionStore: ObservableObject {
         items.removeAll()
     }
 
+    func remove(id: PDFItem.ID) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        // No quitamos un archivo en plena conversión: el subproceso ya está en
+        // marcha y crearía un fantasma sin fila a donde reportar el resultado.
+        if items[index].status == .converting { return }
+        items.remove(at: index)
+    }
+
     func openOutputFolder() {
         guard let item = items.first(where: { $0.status == .done }) else { return }
         NSWorkspace.shared.open(item.outputDirectory)

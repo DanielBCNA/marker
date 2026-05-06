@@ -3,7 +3,10 @@ import AppKit
 
 struct FileRowView: View {
     let item: PDFItem
+    var onRemove: () -> Void
+
     @State private var showingError = false
+    @State private var isHovering = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -14,9 +17,12 @@ struct FileRowView: View {
                 .truncationMode(.middle)
             Spacer()
             statusView
+            removeButton
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
     }
 
     @ViewBuilder
@@ -52,6 +58,24 @@ struct FileRowView: View {
             .popover(isPresented: $showingError, arrowEdge: .top) {
                 ErrorPopover(message: message)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var removeButton: some View {
+        if isHovering && item.status != .converting {
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+                    .font(.body)
+            }
+            .buttonStyle(.plain)
+            .help("Quitar de la lista")
+            .transition(.opacity)
+        } else {
+            // Reserva el ancho del botón para que el resto de la fila no
+            // baile cuando aparece el ícono al hacer hover.
+            Color.clear.frame(width: 16, height: 16)
         }
     }
 }

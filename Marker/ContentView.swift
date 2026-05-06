@@ -32,7 +32,7 @@ struct ContentView: View {
 
     private var fileList: some View {
         List(store.items) { item in
-            FileRowView(item: item)
+            FileRowView(item: item, onRemove: { store.remove(id: item.id) })
                 .listRowInsets(EdgeInsets())
         }
         .listStyle(.plain)
