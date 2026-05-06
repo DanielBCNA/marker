@@ -85,6 +85,13 @@ final class ConversionStore: ObservableObject {
                 }
             }
         }
+
+        let processed = items.filter { pendingIDs.contains($0.id) }
+        let succeeded = processed.filter { $0.status == .done }.count
+        let failed = processed.filter {
+            if case .failed = $0.status { return true }; return false
+        }.count
+        await NotificationManager.shared.notifyBatchComplete(succeeded: succeeded, failed: failed)
     }
 
     private func runOne(id: PDFItem.ID) async {
