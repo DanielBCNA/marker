@@ -7,6 +7,7 @@ final class ConversionStore: ObservableObject {
     @Published private(set) var isConverting: Bool = false
 
     private let scriptManager = ScriptManager()
+    private let maxConcurrent = 3
 
     var hasFailures: Bool { items.contains { if case .failed = $0.status { return true }; return false } }
     var hasResults: Bool { items.contains { $0.status == .done } }
@@ -32,7 +33,7 @@ final class ConversionStore: ObservableObject {
     }
 
     func convertAll() {
-        Task { await runConversion(retryFailedOnly: false) }
+        Task { await runConversion() }
     }
 
     func retryFailed() {
@@ -41,23 +42,53 @@ final class ConversionStore: ObservableObject {
                 items[index].status = .pending
             }
         }
-        Task { await runConversion(retryFailedOnly: false) }
+        Task { await runConversion() }
     }
 
-    private func runConversion(retryFailedOnly: Bool) async {
+    private func runConversion() async {
         guard !isConverting else { return }
+        let pendingIDs = items.compactMap { $0.status == .pending ? $0.id : nil }
+        guard !pendingIDs.isEmpty else { return }
+
         isConverting = true
         defer { isConverting = false }
 
-        for index in items.indices {
-            guard items[index].status == .pending else { continue }
-            items[index].status = .converting
-            do {
-                try await scriptManager.convert(input: items[index].url, output: items[index].outputURL)
-                items[index].status = .done
-            } catch {
-                items[index].status = .failed(error.localizedDescription)
+        await withTaskGroup(of: Void.self) { group in
+            var iterator = pendingIDs.makeIterator()
+            var inFlight = 0
+
+            while inFlight < maxConcurrent, let id = iterator.next() {
+                guard let index = items.firstIndex(where: { $0.id == id }) else { continue }
+                items[index].status = .converting
+                group.addTask { [weak self] in await self?.runOne(id: id) }
+                inFlight += 1
             }
+
+            while await group.next() != nil {
+                inFlight -= 1
+                if let id = iterator.next() {
+                    guard let index = items.firstIndex(where: { $0.id == id }) else { continue }
+                    items[index].status = .converting
+                    group.addTask { [weak self] in await self?.runOne(id: id) }
+                    inFlight += 1
+                }
+            }
+        }
+    }
+
+    private func runOne(id: PDFItem.ID) async {
+        guard let item = items.first(where: { $0.id == id }) else { return }
+        do {
+            try await scriptManager.convert(input: item.url, output: item.outputURL)
+            updateStatus(id: id, status: .done)
+        } catch {
+            updateStatus(id: id, status: .failed(error.localizedDescription))
+        }
+    }
+
+    private func updateStatus(id: PDFItem.ID, status: FileStatus) {
+        if let index = items.firstIndex(where: { $0.id == id }) {
+            items[index].status = status
         }
     }
 
