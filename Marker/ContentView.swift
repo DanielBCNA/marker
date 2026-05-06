@@ -10,6 +10,10 @@ struct ContentView: View {
                 DropZoneView()
                     .padding(20)
             } else {
+                DropZoneView(compact: true)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 10)
+                    .padding(.bottom, 6)
                 fileList
                 Divider()
                 toolbar
