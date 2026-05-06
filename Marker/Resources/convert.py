@@ -10,6 +10,8 @@ La API key se lee del entorno (GEMINI_API_KEY).
 """
 import os
 import re
+import socket
+import ssl
 import sys
 import time
 
@@ -35,6 +37,41 @@ Rules:
 - Use proper Markdown: ## for main sections, ### for subsections
 - Keep financial figures, dates, and proper nouns exactly as written
 - Output only the Markdown content, no preamble or explanation"""
+
+NETWORK_ERROR_MARKERS = (
+    "_ssl.c",
+    "ssl: ",
+    "eof occurred",
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "broken pipe",
+    "timed out",
+    "timeout",
+    "remote disconnected",
+    "name or service not known",
+    "temporary failure in name resolution",
+    "max retries exceeded",
+)
+
+
+def is_transient_network_error(exc):
+    if isinstance(exc, (socket.timeout, ssl.SSLError, ConnectionError, TimeoutError)):
+        return True
+    err = str(exc).lower()
+    return any(marker in err for marker in NETWORK_ERROR_MARKERS)
+
+
+def with_network_retry(fn, label):
+    """Ejecuta fn() con reintentos exponenciales para errores de red transitorios."""
+    for attempt in range(MAX_RETRIES):
+        try:
+            return fn()
+        except Exception as e:
+            if is_transient_network_error(e) and attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
+            raise
 
 
 def strip_fences(text):
@@ -63,6 +100,9 @@ def try_generate(client, model, contents):
                     time.sleep(RETRY_DELAYS[attempt])
                     continue
                 return None, f"Modelo no disponible tras {MAX_RETRIES} intentos: {err[:80]}"
+            if is_transient_network_error(e) and attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAYS[attempt])
+                continue
             return None, str(e)
     return None, "Sin reintentos disponibles"
 
@@ -72,11 +112,17 @@ def convert(pdf_path, out_path):
         raise RuntimeError("Falta GEMINI_API_KEY en el entorno")
 
     client = genai.Client(api_key=API_KEY)
-    uploaded = client.files.upload(file=pdf_path)
+    uploaded = with_network_retry(
+        lambda: client.files.upload(file=pdf_path),
+        "upload",
+    )
 
     while uploaded.state.name == "PROCESSING":
         time.sleep(1)
-        uploaded = client.files.get(name=uploaded.name)
+        uploaded = with_network_retry(
+            lambda: client.files.get(name=uploaded.name),
+            "poll",
+        )
 
     if uploaded.state.name != "ACTIVE":
         raise RuntimeError(f"Fallo al procesar en Gemini: {uploaded.state}")
