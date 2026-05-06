@@ -22,5 +22,14 @@ struct PDFItem: Identifiable, Equatable {
     var status: FileStatus = .pending
 
     var filename: String { url.lastPathComponent }
-    var outputURL: URL { url.deletingPathExtension().appendingPathExtension("md") }
+
+    var outputDirectory: URL {
+        url.deletingLastPathComponent().appendingPathComponent("MD", isDirectory: true)
+    }
+
+    var outputURL: URL {
+        outputDirectory
+            .appendingPathComponent(url.deletingPathExtension().lastPathComponent)
+            .appendingPathExtension("md")
+    }
 }

@@ -31,10 +31,8 @@ final class ConversionStore: ObservableObject {
     }
 
     func openOutputFolder() {
-        guard let parent = items.first(where: { $0.status == .done })?.url.deletingLastPathComponent() else {
-            return
-        }
-        NSWorkspace.shared.open(parent)
+        guard let item = items.first(where: { $0.status == .done }) else { return }
+        NSWorkspace.shared.open(item.outputDirectory)
     }
 
     func convertAll() {

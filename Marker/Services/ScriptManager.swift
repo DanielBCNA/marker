@@ -33,6 +33,11 @@ struct ScriptManager {
             throw ScriptError.missingPython
         }
 
+        try FileManager.default.createDirectory(
+            at: output.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+
         try await runProcess(
             executable: python,
             args: [scriptURL.path, input.path, output.path],
