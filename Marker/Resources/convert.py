@@ -23,7 +23,7 @@ MODELS = [
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-3-flash",
+    "gemini-3-flash-preview",
 ]
 MAX_RETRIES = 3
 RETRY_DELAYS = [8, 20, 45]
