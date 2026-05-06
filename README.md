@@ -64,12 +64,34 @@ Marker/
     └── convert.py           # script Python que llama a Gemini
 ```
 
+## Quick Action en Finder (opcional)
+
+Para tener la opción "Convertir a Markdown" al hacer click derecho en un PDF:
+
+1. Abre **Automator** (Cmd+Espacio → "Automator" → ↵).
+2. **Nuevo Documento** → elige **Acción Rápida**.
+3. Arriba: "El flujo de trabajo recibe" → **archivos PDF** en **Finder**.
+4. Busca **"Ejecutar shell script"** en la barra izquierda y arrástralo al panel central.
+5. En la acción de shell script:
+   - Shell: `/bin/bash`
+   - Pasar entrada: **como argumentos**
+   - Pega:
+     ```bash
+     export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+     "$HOME/Documents/Proyectos/Marker/scripts/marker-cli" "$@"
+     ```
+6. Cmd+S, nombre: **"Convertir a Markdown con Marker"**.
+
+Ahora click derecho sobre uno o varios PDFs en Finder → **Acciones rápidas → Convertir a Markdown con Marker**. Verás una notificación del sistema con el resumen al terminar.
+
+La key se lee del Keychain (la misma que guarda la app), así que no hace falta tenerla en otro sitio.
+
 ## Notas
 
 - La conversión la hace `convert.py` con `google-genai`. Lleva fallback en
   cadena de modelos (Gemini 3.1 flash-lite preview → 2.5 flash-lite → 2.5
-  flash → 3 flash) y reintentos con backoff `[8, 20, 45]` para errores
-  transitorios.
-- Salida: cada `Foo.pdf` produce `Foo.md` en su misma carpeta.
+  flash → 3 flash preview) y reintentos con backoff `[8, 20, 45]` para
+  errores transitorios y de cuota.
+- Salida: cada `Foo.pdf` produce `MD/Foo.md` (subcarpeta `MD/` junto al PDF).
 - La app no está sandboxed — necesita acceso libre al filesystem y a la
   red para hablar con la API de Gemini.
