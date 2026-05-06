@@ -19,11 +19,14 @@ from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# Fallback chain ordered by RPD (Requests Per Day) descending — el primero
+# es el que más cuota diaria tiene, así que lo gastamos primero. Si tus
+# cuotas cambian (ai.google.dev → API → Quotas) reordena esta lista.
 MODELS = [
-    "gemini-3.1-flash-lite-preview",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite-preview",  # 500 RPD
+    "gemini-2.5-flash-lite",          # 20 RPD
+    "gemini-2.5-flash",               # 20 RPD
+    "gemini-3-flash-preview",         # cuota desconocida, último recurso
 ]
 MAX_RETRIES = 3
 RETRY_DELAYS = [8, 20, 45]
@@ -109,9 +112,18 @@ def try_generate(client, model, contents):
             return resp.text, None
         except Exception as e:
             err = str(e)
-            if "429" in err or "RESOURCE_EXHAUSTED" in err:
+            err_lower = err.lower()
+            is_quota = "429" in err or "RESOURCE_EXHAUSTED" in err
+            # TPM (tokens-por-minuto) se reinicia cada minuto; reintentar con
+            # backoff ayuda. RPD (requests-por-día) no se reinicia hasta
+            # mañana; no sirve reintentar pero el coste es bajo (73s) y luego
+            # caemos al siguiente modelo igual.
+            if is_quota:
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAYS[attempt])
+                    continue
                 return None, "quota"
-            if "503" in err or "UNAVAILABLE" in err or "overloaded" in err.lower():
+            if "503" in err or "UNAVAILABLE" in err or "overloaded" in err_lower:
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(RETRY_DELAYS[attempt])
                     continue
