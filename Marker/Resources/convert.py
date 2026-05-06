@@ -45,18 +45,34 @@ NETWORK_ERROR_MARKERS = (
     "connection reset",
     "connection aborted",
     "connection refused",
+    "connection closed",
     "broken pipe",
     "timed out",
     "timeout",
     "remote disconnected",
+    "server disconnected",
+    "remote end closed",
+    "incomplete read",
+    "cannot connect",
     "name or service not known",
     "temporary failure in name resolution",
     "max retries exceeded",
+    "remoteprotocolerror",
+    "protocolerror",
+    "transporterror",
 )
+
+try:
+    import httpx as _httpx
+    _HTTPX_TRANSPORT_ERROR = _httpx.TransportError
+except Exception:
+    _HTTPX_TRANSPORT_ERROR = ()
 
 
 def is_transient_network_error(exc):
     if isinstance(exc, (socket.timeout, ssl.SSLError, ConnectionError, TimeoutError)):
+        return True
+    if _HTTPX_TRANSPORT_ERROR and isinstance(exc, _HTTPX_TRANSPORT_ERROR):
         return True
     err = str(exc).lower()
     return any(marker in err for marker in NETWORK_ERROR_MARKERS)
