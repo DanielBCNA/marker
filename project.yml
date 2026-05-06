@@ -1,0 +1,43 @@
+name: Marker
+options:
+  bundleIdPrefix: com.marker
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: NO
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+
+targets:
+  Marker:
+    type: application
+    platform: macOS
+    sources:
+      - path: Marker
+        excludes:
+          - "Resources/__pycache__"
+    resources:
+      - path: Marker/Resources
+    info:
+      path: Marker/Info.plist
+      properties:
+        CFBundleName: Marker
+        CFBundleDisplayName: Marker
+        CFBundleIdentifier: com.marker.app
+        CFBundleVersion: "1"
+        CFBundleShortVersionString: "1.0"
+        CFBundlePackageType: APPL
+        LSMinimumSystemVersion: "14.0"
+        NSHighResolutionCapable: true
+        LSApplicationCategoryType: public.app-category.productivity
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marker.app
+        PRODUCT_NAME: Marker
+        GENERATE_INFOPLIST_FILE: NO
