@@ -11,13 +11,29 @@ enum ScriptError: LocalizedError {
         case .scriptNotFound:
             return "convert.py no se encontró en el bundle."
         case .missingAPIKey:
-            return "Falta GEMINI_API_KEY (env var, ~/.config/marker/api_key, o .env)."
+            return "Falta GEMINI_API_KEY (configúrala en Settings)."
         case .missingPython:
             return "No se encontró python3 en /opt/homebrew/bin, /usr/local/bin ni /usr/bin."
         case .nonZeroExit(_, let stderr):
-            let trimmed = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? "Error desconocido" : trimmed
+            let cleaned = ScriptError.stripPythonNoise(stderr)
+            return cleaned.isEmpty ? "Error desconocido" : cleaned
         }
+    }
+
+    private static func stripPythonNoise(_ stderr: String) -> String {
+        // Filtra líneas de FutureWarning/DeprecationWarning de imports, que son
+        // ruido y no el error real (especialmente con Python 3.9 EOL).
+        let noisePatterns = [
+            "FutureWarning",
+            "DeprecationWarning",
+            "NotOpenSSLWarning",
+            "warnings.warn(",
+        ]
+        let lines = stderr.split(separator: "\n", omittingEmptySubsequences: false)
+        let filtered = lines.filter { line in
+            !noisePatterns.contains(where: line.contains)
+        }
+        return filtered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -102,6 +118,7 @@ struct ScriptManager {
 
             var processEnv = ProcessInfo.processInfo.environment
             processEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+            processEnv["PYTHONWARNINGS"] = "ignore"
             for (key, value) in env { processEnv[key] = value }
             process.environment = processEnv
 

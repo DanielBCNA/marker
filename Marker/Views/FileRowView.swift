@@ -1,7 +1,9 @@
 import SwiftUI
+import AppKit
 
 struct FileRowView: View {
     let item: PDFItem
+    @State private var showingError = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -37,11 +39,54 @@ struct FileRowView: View {
                 .font(.caption)
                 .foregroundStyle(.green)
         case .failed(let message):
-            Label("Error", systemImage: "exclamationmark.triangle.fill")
-                .labelStyle(.titleAndIcon)
-                .font(.caption)
-                .foregroundStyle(.red)
-                .help(message)
+            Button {
+                showingError = true
+            } label: {
+                Label("Error", systemImage: "exclamationmark.triangle.fill")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.plain)
+            .help("Click para ver el error completo")
+            .popover(isPresented: $showingError, arrowEdge: .top) {
+                ErrorPopover(message: message)
+            }
         }
+    }
+}
+
+private struct ErrorPopover: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Error de conversión")
+                .font(.headline)
+
+            ScrollView {
+                Text(message)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .frame(maxHeight: 220)
+
+            HStack {
+                Spacer()
+                Button("Copiar") { copy() }
+            }
+        }
+        .padding(14)
+        .frame(width: 460)
+    }
+
+    private func copy() {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(message, forType: .string)
     }
 }
