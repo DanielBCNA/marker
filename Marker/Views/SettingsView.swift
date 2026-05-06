@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var store: ConversionStore
     @State private var apiKey: String = ""
     @State private var savedFeedback: String?
 
@@ -44,11 +45,13 @@ struct SettingsView: View {
     private func save() {
         let ok = KeychainStore.saveAPIKey(apiKey)
         savedFeedback = ok ? "Guardado en Keychain" : "Error al guardar"
+        if ok { store.refreshAPIKeyStatus() }
     }
 
     private func clear() {
         KeychainStore.delete()
         apiKey = ""
         savedFeedback = "Borrado"
+        store.refreshAPIKeyStatus()
     }
 }

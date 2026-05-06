@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: ConversionStore
+    @State private var showOnboarding = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +13,15 @@ struct ContentView: View {
                 fileList
                 Divider()
                 toolbar
+            }
+        }
+        .onAppear {
+            showOnboarding = !store.apiKeyConfigured
+        }
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingSheet {
+                store.refreshAPIKeyStatus()
+                showOnboarding = false
             }
         }
     }

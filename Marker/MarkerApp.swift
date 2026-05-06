@@ -14,6 +14,7 @@ struct MarkerApp: App {
 
         Settings {
             SettingsView()
+                .environmentObject(store)
         }
     }
 }

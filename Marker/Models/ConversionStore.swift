@@ -5,9 +5,14 @@ import AppKit
 final class ConversionStore: ObservableObject {
     @Published private(set) var items: [PDFItem] = []
     @Published private(set) var isConverting: Bool = false
+    @Published var apiKeyConfigured: Bool = APIKeySource.isConfigured
 
     private let scriptManager = ScriptManager()
     private let maxConcurrent = 3
+
+    func refreshAPIKeyStatus() {
+        apiKeyConfigured = APIKeySource.isConfigured
+    }
 
     var hasFailures: Bool { items.contains { if case .failed = $0.status { return true }; return false } }
     var hasResults: Bool { items.contains { $0.status == .done } }

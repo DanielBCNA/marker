@@ -43,11 +43,8 @@ struct ScriptManager {
     // MARK: - API key resolution
 
     private func loadAPIKey() -> String? {
-        if let env = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !env.isEmpty {
-            return env
-        }
-        if let keychain = KeychainStore.loadAPIKey() {
-            return keychain
+        if let key = APIKeySource.current() {
+            return key
         }
         let configPath = ("~/.config/marker/api_key" as NSString).expandingTildeInPath
         if let key = try? String(contentsOfFile: configPath, encoding: .utf8) {
