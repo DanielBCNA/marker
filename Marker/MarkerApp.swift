@@ -11,5 +11,9 @@ struct MarkerApp: App {
                 .frame(minWidth: 520, minHeight: 480)
         }
         .windowResizability(.contentSize)
+
+        Settings {
+            SettingsView()
+        }
     }
 }

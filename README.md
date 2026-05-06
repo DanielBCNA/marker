@@ -20,6 +20,11 @@ Para compilar y correr el .app necesitas Xcode (App Store).
 
 ### 2. API key
 
+Forma recomendada: abre la app, ve a **Marker → Settings…** y pega tu key. Se
+guarda en el Keychain del sistema.
+
+Para desarrollo o headless:
+
 ```bash
 cp .env.example .env
 # Edita .env y pega tu GEMINI_API_KEY
@@ -27,8 +32,9 @@ cp .env.example .env
 
 En tiempo de ejecución la app busca la key en este orden:
 1. Variable de entorno `GEMINI_API_KEY`
-2. Archivo `~/.config/marker/api_key`
-3. Archivo `.env` en el directorio del proyecto (sólo en desarrollo)
+2. Keychain del sistema (lo que escribe la pantalla Settings)
+3. Archivo `~/.config/marker/api_key`
+4. Archivo `.env` en el directorio del proyecto (sólo en desarrollo)
 
 ### 3. Generar el proyecto Xcode y abrir
 
