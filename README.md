@@ -68,7 +68,7 @@ Marker/
 
 La app instala automáticamente la Quick Action "Convertir a Markdown con
 Marker" en `~/Library/Services/` la primera vez que arranca, apuntando al
-`marker-cli` empaquetado dentro del propio `.app`. No hay que pasar por
+`marker-cli.py` empaquetado dentro del propio `.app`. No hay que pasar por
 Automator.
 
 Después de la primera ejecución de Marker, click derecho sobre uno o
@@ -84,7 +84,7 @@ nueva ubicación.
 
 > **Nota — TCC y `~/Documents`:** macOS bloquea Quick Actions que ejecutan
 > scripts desde `~/Documents` ("Operation not permitted"). Por eso
-> `marker-cli` se distribuye dentro del `.app`, que vive en `/Applications`
+> `marker-cli.py` se distribuye dentro del `.app`, que vive en `/Applications`
 > y está fuera del alcance de TCC.
 
 ## Notas

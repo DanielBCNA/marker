@@ -11,8 +11,8 @@ enum QuickActionInstaller {
     private static let menuTitle = "Convertir a Markdown con Marker"
 
     static func installIfNeeded() {
-        guard let cliURL = Bundle.main.url(forResource: "marker-cli", withExtension: nil) else {
-            NSLog("[QuickActionInstaller] marker-cli no encontrado en el bundle")
+        guard let cliURL = Bundle.main.url(forResource: "marker-cli", withExtension: "py") else {
+            NSLog("[QuickActionInstaller] marker-cli.py no encontrado en el bundle")
             return
         }
 
