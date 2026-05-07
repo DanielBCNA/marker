@@ -30,3 +30,6 @@ Package.resolved
 __pycache__/
 *.pyc
 .venv/
+
+# Claude Code (local settings, transcripts)
+.claude/
