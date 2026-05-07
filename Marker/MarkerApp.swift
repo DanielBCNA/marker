@@ -4,6 +4,12 @@ import SwiftUI
 struct MarkerApp: App {
     @StateObject private var store = ConversionStore()
 
+    init() {
+        Task { @MainActor in
+            QuickActionInstaller.installIfNeeded()
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -64,33 +64,28 @@ Marker/
     └── convert.py           # script Python que llama a Gemini
 ```
 
-## Quick Action en Finder (opcional)
+## Quick Action en Finder
 
-`marker-cli` se empaqueta dentro del `.app` (en
-`/Applications/Marker.app/Contents/Resources/marker-cli`), así que una vez
-instalada Marker.app no hace falta instalar nada más.
+La app instala automáticamente la Quick Action "Convertir a Markdown con
+Marker" en `~/Library/Services/` la primera vez que arranca, apuntando al
+`marker-cli` empaquetado dentro del propio `.app`. No hay que pasar por
+Automator.
 
-Para crear la Quick Action:
+Después de la primera ejecución de Marker, click derecho sobre uno o
+varios PDFs en Finder → **Acciones rápidas → Convertir a Markdown con
+Marker**. Notificación del sistema con el resumen al terminar.
 
-1. Abre **Automator** (Cmd+Espacio → "Automator" → ↵).
-2. **Nuevo Documento** → elige **Acción Rápida**.
-3. Arriba: "El flujo de trabajo recibe" → **archivos PDF** en **Finder**.
-4. Busca **"Ejecutar shell script"** en la barra izquierda y arrástralo al panel central.
-5. En la acción de shell script:
-   - Shell: `/bin/bash`
-   - Pasar entrada: **como argumentos**
-   - Pega:
-     ```bash
-     export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-     /Applications/Marker.app/Contents/Resources/marker-cli "$@"
-     ```
-6. Cmd+S, nombre: **"Convertir a Markdown con Marker"**.
+La key se lee del Keychain (la misma que guarda la app), así que no hace
+falta tenerla en otro sitio.
 
-Ahora click derecho sobre uno o varios PDFs en Finder → **Acciones rápidas → Convertir a Markdown con Marker**. Verás una notificación del sistema con el resumen al terminar.
+Si mueves Marker.app de carpeta, vuelve a abrirla — el instalador
+detecta que la ruta ha cambiado y reescribe la Quick Action con la
+nueva ubicación.
 
-La key se lee del Keychain (la misma que guarda la app), así que no hace falta tenerla en otro sitio.
-
-> **Nota — TCC y `~/Documents`:** macOS bloquea Quick Actions que intentan ejecutar scripts desde `~/Documents` ("Operation not permitted"). Por eso `marker-cli` se distribuye dentro del `.app`, que vive en `/Applications` y no está bajo TCC. Si por algún motivo lo ejecutas desde `~/Documents/Proyectos/Marker/scripts/marker-cli` directamente desde un Quick Action, fallará — usa la ruta del bundle.
+> **Nota — TCC y `~/Documents`:** macOS bloquea Quick Actions que ejecutan
+> scripts desde `~/Documents` ("Operation not permitted"). Por eso
+> `marker-cli` se distribuye dentro del `.app`, que vive en `/Applications`
+> y está fuera del alcance de TCC.
 
 ## Notas
 
