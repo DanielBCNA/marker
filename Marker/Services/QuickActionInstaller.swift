@@ -41,9 +41,13 @@ enum QuickActionInstaller {
     }
 
     private static func commandString(cliPath: String) -> String {
+        // Invocamos vía `python3 <path>` (en vez de directo) para no depender
+        // del bit ejecutable del archivo: Xcode al copiar resources al bundle
+        // a veces lo descarta. El shebang del script queda como comentario
+        // y el contenido se ejecuta igual.
         """
         export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-        "\(cliPath)" "$@"
+        python3 "\(cliPath)" "$@"
         """
     }
 
