@@ -48,14 +48,24 @@ def fatal(message):
 
 
 def locate_convert_py():
-    # 1. Junto a este script: <repo>/scripts/marker-cli → <repo>/Marker/Resources/convert.py
     script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 1. Junto al script (caso bundle: marker-cli y convert.py viven en la
+    #    misma carpeta Resources/ del .app, también si copias ambos a
+    #    /usr/local/bin).
+    sibling = os.path.join(script_dir, "convert.py")
+    if os.path.isfile(sibling):
+        return sibling
+
+    # 2. Repo de desarrollo: <repo>/scripts/marker-cli → <repo>/Marker/Resources/convert.py
     repo_local = os.path.join(
         os.path.dirname(script_dir), "Marker", "Resources", "convert.py"
     )
     if os.path.isfile(repo_local):
         return repo_local
-    # 2. App instalada en /Applications.
+
+    # 3. App instalada en /Applications (cuando marker-cli vive fuera del
+    #    bundle, p.ej. en /usr/local/bin).
     for app_path in (
         "/Applications/Marker.app",
         os.path.expanduser("~/Applications/Marker.app"),

@@ -66,7 +66,11 @@ Marker/
 
 ## Quick Action en Finder (opcional)
 
-Para tener la opción "Convertir a Markdown" al hacer click derecho en un PDF:
+`marker-cli` se empaqueta dentro del `.app` (en
+`/Applications/Marker.app/Contents/Resources/marker-cli`), así que una vez
+instalada Marker.app no hace falta instalar nada más.
+
+Para crear la Quick Action:
 
 1. Abre **Automator** (Cmd+Espacio → "Automator" → ↵).
 2. **Nuevo Documento** → elige **Acción Rápida**.
@@ -78,13 +82,15 @@ Para tener la opción "Convertir a Markdown" al hacer click derecho en un PDF:
    - Pega:
      ```bash
      export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-     "$HOME/Documents/Proyectos/Marker/scripts/marker-cli" "$@"
+     /Applications/Marker.app/Contents/Resources/marker-cli "$@"
      ```
 6. Cmd+S, nombre: **"Convertir a Markdown con Marker"**.
 
 Ahora click derecho sobre uno o varios PDFs en Finder → **Acciones rápidas → Convertir a Markdown con Marker**. Verás una notificación del sistema con el resumen al terminar.
 
 La key se lee del Keychain (la misma que guarda la app), así que no hace falta tenerla en otro sitio.
+
+> **Nota — TCC y `~/Documents`:** macOS bloquea Quick Actions que intentan ejecutar scripts desde `~/Documents` ("Operation not permitted"). Por eso `marker-cli` se distribuye dentro del `.app`, que vive en `/Applications` y no está bajo TCC. Si por algún motivo lo ejecutas desde `~/Documents/Proyectos/Marker/scripts/marker-cli` directamente desde un Quick Action, fallará — usa la ruta del bundle.
 
 ## Notas
 

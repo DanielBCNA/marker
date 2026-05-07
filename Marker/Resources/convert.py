@@ -7,6 +7,10 @@ Requiere:
     pip3 install google-genai
 
 La API key se lee del entorno (GEMINI_API_KEY).
+
+Este módulo es importado tanto por la app (vía Process en
+ScriptManager.swift) como por scripts/marker-cli, que reutiliza la
+función convert() para la Quick Action de Finder.
 """
 import os
 import re

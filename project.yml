@@ -24,6 +24,8 @@ targets:
           - "Resources/__pycache__"
     resources:
       - path: Marker/Resources
+      - path: scripts/marker-cli
+        type: file
     info:
       path: Marker/Info.plist
       properties:
