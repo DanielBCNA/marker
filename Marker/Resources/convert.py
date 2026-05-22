@@ -27,10 +27,10 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 # es el que más cuota diaria tiene, así que lo gastamos primero. Si tus
 # cuotas cambian (ai.google.dev → API → Quotas) reordena esta lista.
 MODELS = [
-    "gemini-3.1-flash-lite-preview",  # 500 RPD
+    "gemini-3.1-flash-lite",          # 500 RPD
     "gemini-2.5-flash-lite",          # 20 RPD
     "gemini-2.5-flash",               # 20 RPD
-    "gemini-3-flash-preview",         # cuota desconocida, último recurso
+    "gemini-3-flash-preview",         # 20 RPD, último recurso
 ]
 MAX_RETRIES = 3
 RETRY_DELAYS = [8, 20, 45]

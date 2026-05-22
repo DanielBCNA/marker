@@ -90,7 +90,7 @@ nueva ubicación.
 ## Notas
 
 - La conversión la hace `convert.py` con `google-genai`. Lleva fallback en
-  cadena de modelos (Gemini 3.1 flash-lite preview → 2.5 flash-lite → 2.5
+  cadena de modelos (Gemini 3.1 flash-lite → 2.5 flash-lite → 2.5
   flash → 3 flash preview) y reintentos con backoff `[8, 20, 45]` para
   errores transitorios y de cuota.
 - Salida: cada `Foo.pdf` produce `MD/Foo.md` (subcarpeta `MD/` junto al PDF).
