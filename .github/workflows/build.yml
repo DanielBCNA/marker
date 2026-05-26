@@ -90,20 +90,49 @@ jobs:
           path: Marker.zip
           retention-days: 14
 
-      - name: Publish or refresh Release (link estable)
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Resolve tag and download URL for appcast
+        id: release_meta
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
-            TITLE="Marker ${{ steps.version.outputs.marketing }}"
           else
             TAG="build-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "download_url=https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/Marker.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Sign Marker.zip and generate appcast.xml
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          MARKER_ZIP: Marker.zip
+          MARKER_VERSION: ${{ steps.version.outputs.marketing }}
+          MARKER_BUILD: ${{ steps.version.outputs.build }}
+          MARKER_DOWNLOAD_URL: ${{ steps.release_meta.outputs.download_url }}
+          APPCAST_PATH: appcast.xml
+        run: |
+          if [ -z "${SPARKLE_PRIVATE_KEY}" ]; then
+            echo "::error::Falta el secret SPARKLE_PRIVATE_KEY. Anadelo en Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet cryptography
+          python3 scripts/sign_and_appcast.py
+          echo "---appcast.xml---"
+          cat appcast.xml
+
+      - name: Publish or refresh Release (link estable)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TITLE="Marker ${{ steps.version.outputs.marketing }}"
+          else
             TITLE="Marker ${{ steps.version.outputs.marketing }} (build ${GITHUB_RUN_NUMBER})"
           fi
           # Idempotente: si el tag ya existe (re-run), borramos y recreamos.
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$TAG" "Marker.zip" \
+          gh release create "$TAG" "Marker.zip" "appcast.xml" \
             --title "$TITLE" \
             --latest \
             --generate-notes
