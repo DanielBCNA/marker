@@ -1,0 +1,100 @@
+name: Build Marker
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (ej. 1.2.3). Vacío = git describe."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            V="${{ inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            V="${GITHUB_REF#refs/tags/v}"
+          else
+            V="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+          fi
+          echo "marketing=$V" >> "$GITHUB_OUTPUT"
+          echo "build=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Building Marker $V (build $GITHUB_RUN_NUMBER)"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Stamp version into project.yml
+        run: |
+          sed -i '' \
+            -e "s/CFBundleVersion: \"[^\"]*\"/CFBundleVersion: \"${{ steps.version.outputs.build }}\"/" \
+            -e "s/CFBundleShortVersionString: \"[^\"]*\"/CFBundleShortVersionString: \"${{ steps.version.outputs.marketing }}\"/" \
+            project.yml
+          grep -E "CFBundleVersion|CFBundleShortVersionString" project.yml
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (Release, ad-hoc signed)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Marker.xcodeproj \
+            -scheme Marker \
+            -configuration Release \
+            -derivedDataPath build \
+            ONLY_ACTIVE_ARCH=NO \
+            build
+
+      - name: Verify .app and signature
+        run: |
+          APP="build/Build/Products/Release/Marker.app"
+          if [ ! -d "$APP" ]; then
+            echo "Marker.app no se generó en $APP" >&2
+            ls -la build/Build/Products/Release/ || true
+            exit 1
+          fi
+          codesign --display --verbose=2 "$APP" || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Contents/Info.plist"
+
+      - name: Package .app as zip
+        run: |
+          APP="build/Build/Products/Release/Marker.app"
+          ZIP="Marker-${{ steps.version.outputs.marketing }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+          ls -lh "$ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Marker-${{ steps.version.outputs.marketing }}
+          path: ${{ env.zip }}
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "${{ env.zip }}" \
+            --title "Marker ${{ steps.version.outputs.marketing }}" \
+            --generate-notes
