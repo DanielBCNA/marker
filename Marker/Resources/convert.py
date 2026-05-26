@@ -20,6 +20,7 @@ import sys
 import time
 
 from google import genai
+from google.genai import types
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 
@@ -35,13 +36,29 @@ MODELS = [
 MAX_RETRIES = 3
 RETRY_DELAYS = [8, 20, 45]
 
+# Gemini puede tardar segundos en pasar el upload de PROCESSING a ACTIVE.
+# Si excede este tope asumimos que se atascó y abortamos en vez de
+# esperar indefinidamente.
+MAX_UPLOAD_WAIT_SECONDS = 120
+
+# Generación determinística (temperature=0) y output como Markdown nativo
+# para que el modelo no envuelva la respuesta en ```markdown ... ```.
+# max_output_tokens generoso para earnings calls largas (~50 páginas).
+GENERATION_CONFIG = types.GenerateContentConfig(
+    response_mime_type="text/markdown",
+    temperature=0.0,
+    max_output_tokens=32768,
+)
+
 PROMPT = """Convert this PDF (an earnings call transcript) to clean, well-structured Markdown.
 
 Rules:
+- Output must be in the same language as the input document. Do not translate.
 - Preserve all speaker names as bold headers: **SPEAKER NAME:**
 - Remove page numbers, headers, footers, and legal disclaimers at the top/bottom of pages
 - Remove repetitive copyright/confidentiality notices between pages
 - Use proper Markdown: ## for main sections, ### for subsections
+- Render tables of financial data as Markdown tables
 - Keep financial figures, dates, and proper nouns exactly as written
 - Output only the Markdown content, no preamble or explanation"""
 
@@ -97,6 +114,16 @@ def with_network_retry(fn, label):
             raise
 
 
+def classify_quota_error(err_text):
+    """Distingue cuotas diarias (RPD, irrecuperables hoy) de las por minuto
+    (TPM/RPM, que sí se reinician). Si el mensaje no es claro, se trata
+    como TPM y se reintenta — es el caso conservador."""
+    s = err_text.lower()
+    if "per day" in s or "rpd" in s or "daily limit" in s or "perdayperproject" in s:
+        return "rpd"
+    return "tpm"
+
+
 def strip_fences(text):
     s = text.strip()
     s = re.sub(r"^```[a-zA-Z]*\n?", "", s, count=1)
@@ -107,7 +134,11 @@ def strip_fences(text):
 def try_generate(client, model, contents):
     for attempt in range(MAX_RETRIES):
         try:
-            resp = client.models.generate_content(model=model, contents=contents)
+            resp = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=GENERATION_CONFIG,
+            )
             if resp.text is None:
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(RETRY_DELAYS[attempt])
@@ -118,11 +149,12 @@ def try_generate(client, model, contents):
             err = str(e)
             err_lower = err.lower()
             is_quota = "429" in err or "RESOURCE_EXHAUSTED" in err
-            # TPM (tokens-por-minuto) se reinicia cada minuto; reintentar con
-            # backoff ayuda. RPD (requests-por-día) no se reinicia hasta
-            # mañana; no sirve reintentar pero el coste es bajo (73s) y luego
-            # caemos al siguiente modelo igual.
             if is_quota:
+                # RPD se reinicia a medianoche: no sirve reintentar, mejor
+                # saltar al siguiente modelo de la cadena ahora mismo.
+                # TPM se reinicia cada minuto: backoff sí ayuda.
+                if classify_quota_error(err) == "rpd":
+                    return None, "quota"
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(RETRY_DELAYS[attempt])
                     continue
@@ -149,7 +181,17 @@ def convert(pdf_path, out_path):
         "upload",
     )
 
+    upload_started = time.monotonic()
     while uploaded.state.name == "PROCESSING":
+        if time.monotonic() - upload_started > MAX_UPLOAD_WAIT_SECONDS:
+            try:
+                client.files.delete(name=uploaded.name)
+            except Exception:
+                pass
+            raise RuntimeError(
+                f"Timeout esperando a Gemini ({MAX_UPLOAD_WAIT_SECONDS}s). "
+                "El PDF se quedo en PROCESSING; reintenta mas tarde."
+            )
         time.sleep(1)
         uploaded = with_network_retry(
             lambda: client.files.get(name=uploaded.name),
