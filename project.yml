@@ -14,6 +14,11 @@ settings:
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: "-"
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+
 targets:
   Marker:
     type: application
@@ -24,6 +29,8 @@ targets:
           - "Resources/__pycache__"
     resources:
       - path: Marker/Resources
+    dependencies:
+      - package: Sparkle
     info:
       path: Marker/Info.plist
       properties:
@@ -36,6 +43,10 @@ targets:
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         LSApplicationCategoryType: public.app-category.productivity
+        SUFeedURL: "https://github.com/DanielBCNA/Marker/releases/latest/download/appcast.xml"
+        SUPublicEDKey: "sxSvTEzPvO5qptAGxINCr+teLL38iEM4DPdC0edsgNI="
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.marker.app
