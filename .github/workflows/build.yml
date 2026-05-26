@@ -114,8 +114,11 @@ jobs:
             echo "::error::Falta el secret SPARKLE_PRIVATE_KEY. Anadelo en Settings > Secrets and variables > Actions."
             exit 1
           fi
-          python3 -m pip install --quiet --upgrade pip
-          python3 -m pip install --quiet cryptography
+          # macos-15 trae Python 3.13 con PEP 668 activo, que bloquea
+          # pip install fuera de un venv. El runner es efimero, asi que
+          # --break-system-packages es la via mas simple.
+          python3 -m pip install --quiet --break-system-packages --upgrade pip
+          python3 -m pip install --quiet --break-system-packages cryptography
           python3 scripts/sign_and_appcast.py
           echo "---appcast.xml---"
           cat appcast.xml
