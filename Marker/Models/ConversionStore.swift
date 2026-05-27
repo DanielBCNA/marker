@@ -71,7 +71,7 @@ final class ConversionStore: ObservableObject {
         isConverting = true
         defer { isConverting = false }
 
-        var processedIDs: Set<PDFItem.ID> = []
+        var attemptedIDs: Set<PDFItem.ID> = []
 
         await withTaskGroup(of: PDFItem.ID.self) { group in
             var inFlight = 0
@@ -79,8 +79,12 @@ final class ConversionStore: ObservableObject {
             while true {
                 // Rellena huecos con nuevos pendientes en cada vuelta: así los
                 // PDFs que el usuario añade durante la conversión entran al
-                // ciclo en cuanto se libera un slot, sin esperar otro click.
-                while inFlight < maxConcurrent, let id = claimNextPending() {
+                // ciclo en cuanto se libera un slot. attemptedIDs evita que un
+                // PDF cancelado (que vuelve a .pending) se relance dentro de la
+                // misma tanda — queda esperando al siguiente Convertir.
+                while inFlight < maxConcurrent,
+                      let id = claimNextPending(excluding: attemptedIDs) {
+                    attemptedIDs.insert(id)
                     group.addTask { [weak self] in
                         await self?.runOne(id: id)
                         return id
@@ -88,14 +92,13 @@ final class ConversionStore: ObservableObject {
                     inFlight += 1
                 }
                 if inFlight == 0 { break }
-                if let id = await group.next() {
-                    processedIDs.insert(id)
+                if await group.next() != nil {
                     inFlight -= 1
                 }
             }
         }
 
-        let processed = items.filter { processedIDs.contains($0.id) }
+        let processed = items.filter { attemptedIDs.contains($0.id) }
         let succeeded = processed.filter { $0.status == .done }.count
         let failed = processed.filter {
             if case .failed = $0.status { return true }; return false
@@ -103,8 +106,10 @@ final class ConversionStore: ObservableObject {
         await NotificationManager.shared.notifyBatchComplete(succeeded: succeeded, failed: failed)
     }
 
-    private func claimNextPending() -> PDFItem.ID? {
-        guard let index = items.firstIndex(where: { $0.status == .pending }) else { return nil }
+    private func claimNextPending(excluding: Set<PDFItem.ID>) -> PDFItem.ID? {
+        guard let index = items.firstIndex(where: {
+            $0.status == .pending && !excluding.contains($0.id)
+        }) else { return nil }
         items[index].status = .converting
         return items[index].id
     }
