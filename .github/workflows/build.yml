@@ -133,13 +133,17 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TITLE="Marker ${{ steps.version.outputs.marketing }}"
+            LATEST_FLAG="--latest"
           else
             TITLE="Marker ${{ steps.version.outputs.marketing }} (build ${GITHUB_RUN_NUMBER})"
+            # Sólo los tags v* compiten por --latest; los build-N intermedios
+            # quedan archivados sin disputar el feed de Sparkle.
+            LATEST_FLAG="--latest=false"
           fi
           # Idempotente: si el tag ya existe (re-run), borramos y recreamos.
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$TAG" "Marker.zip" "appcast.xml" \
             --title "$TITLE" \
-            --latest \
+            $LATEST_FLAG \
             --generate-notes
           echo "::notice title=Release publicado::https://github.com/${GITHUB_REPOSITORY}/releases/latest"
