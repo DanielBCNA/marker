@@ -9,6 +9,8 @@ final class ConversionStore: ObservableObject {
 
     private let scriptManager = ScriptManager()
     private let maxConcurrent = 3
+    private var activeProcesses: [PDFItem.ID: Process] = [:]
+    private var cancellingIDs: Set<PDFItem.ID> = []
 
     func refreshAPIKeyStatus() {
         apiKeyConfigured = APIKeySource.isConfigured
@@ -38,6 +40,12 @@ final class ConversionStore: ObservableObject {
         items.remove(at: index)
     }
 
+    func cancel(id: PDFItem.ID) {
+        guard items.contains(where: { $0.id == id && $0.status == .converting }) else { return }
+        cancellingIDs.insert(id)
+        activeProcesses[id]?.terminate()
+    }
+
     func openOutputFolder() {
         guard let item = items.first(where: { $0.status == .done }) else { return }
         NSWorkspace.shared.open(item.outputDirectory)
@@ -58,35 +66,36 @@ final class ConversionStore: ObservableObject {
 
     private func runConversion() async {
         guard !isConverting else { return }
-        let pendingIDs = items.compactMap { $0.status == .pending ? $0.id : nil }
-        guard !pendingIDs.isEmpty else { return }
+        guard items.contains(where: { $0.status == .pending }) else { return }
 
         isConverting = true
         defer { isConverting = false }
 
-        await withTaskGroup(of: Void.self) { group in
-            var iterator = pendingIDs.makeIterator()
+        var processedIDs: Set<PDFItem.ID> = []
+
+        await withTaskGroup(of: PDFItem.ID.self) { group in
             var inFlight = 0
 
-            while inFlight < maxConcurrent, let id = iterator.next() {
-                guard let index = items.firstIndex(where: { $0.id == id }) else { continue }
-                items[index].status = .converting
-                group.addTask { [weak self] in await self?.runOne(id: id) }
-                inFlight += 1
-            }
-
-            while await group.next() != nil {
-                inFlight -= 1
-                if let id = iterator.next() {
-                    guard let index = items.firstIndex(where: { $0.id == id }) else { continue }
-                    items[index].status = .converting
-                    group.addTask { [weak self] in await self?.runOne(id: id) }
+            while true {
+                // Rellena huecos con nuevos pendientes en cada vuelta: así los
+                // PDFs que el usuario añade durante la conversión entran al
+                // ciclo en cuanto se libera un slot, sin esperar otro click.
+                while inFlight < maxConcurrent, let id = claimNextPending() {
+                    group.addTask { [weak self] in
+                        await self?.runOne(id: id)
+                        return id
+                    }
                     inFlight += 1
+                }
+                if inFlight == 0 { break }
+                if let id = await group.next() {
+                    processedIDs.insert(id)
+                    inFlight -= 1
                 }
             }
         }
 
-        let processed = items.filter { pendingIDs.contains($0.id) }
+        let processed = items.filter { processedIDs.contains($0.id) }
         let succeeded = processed.filter { $0.status == .done }.count
         let failed = processed.filter {
             if case .failed = $0.status { return true }; return false
@@ -94,14 +103,30 @@ final class ConversionStore: ObservableObject {
         await NotificationManager.shared.notifyBatchComplete(succeeded: succeeded, failed: failed)
     }
 
+    private func claimNextPending() -> PDFItem.ID? {
+        guard let index = items.firstIndex(where: { $0.status == .pending }) else { return nil }
+        items[index].status = .converting
+        return items[index].id
+    }
+
     private func runOne(id: PDFItem.ID) async {
         guard let item = items.first(where: { $0.id == id }) else { return }
         do {
-            try await scriptManager.convert(input: item.url, output: item.outputURL)
+            try await scriptManager.convert(input: item.url, output: item.outputURL) { [weak self] process in
+                self?.activeProcesses[id] = process
+            }
             updateStatus(id: id, status: .done)
         } catch {
-            updateStatus(id: id, status: .failed(error.localizedDescription))
+            if cancellingIDs.contains(id) {
+                // Cancelación deliberada: vuelve a pendiente para que el
+                // usuario decida si lo relanza o lo quita.
+                updateStatus(id: id, status: .pending)
+            } else {
+                updateStatus(id: id, status: .failed(error.localizedDescription))
+            }
         }
+        activeProcesses.removeValue(forKey: id)
+        cancellingIDs.remove(id)
     }
 
     private func updateStatus(id: PDFItem.ID, status: FileStatus) {

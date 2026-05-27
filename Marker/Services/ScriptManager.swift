@@ -38,7 +38,11 @@ enum ScriptError: LocalizedError {
 }
 
 struct ScriptManager {
-    func convert(input: URL, output: URL) async throws {
+    func convert(
+        input: URL,
+        output: URL,
+        onStart: (@MainActor (Process) -> Void)? = nil
+    ) async throws {
         guard let scriptURL = Bundle.main.url(forResource: "convert", withExtension: "py") else {
             throw ScriptError.scriptNotFound
         }
@@ -57,7 +61,8 @@ struct ScriptManager {
         try await runProcess(
             executable: python,
             args: [scriptURL.path, input.path, output.path],
-            env: ["GEMINI_API_KEY": apiKey]
+            env: ["GEMINI_API_KEY": apiKey],
+            onStart: onStart
         )
     }
 
@@ -110,23 +115,35 @@ struct ScriptManager {
 
     // MARK: - Process
 
-    private func runProcess(executable: String, args: [String], env: [String: String]) async throws {
+    private func runProcess(
+        executable: String,
+        args: [String],
+        env: [String: String],
+        onStart: (@MainActor (Process) -> Void)?
+    ) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = args
+
+        var processEnv = ProcessInfo.processInfo.environment
+        processEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        processEnv["PYTHONWARNINGS"] = "ignore"
+        for (key, value) in env { processEnv[key] = value }
+        process.environment = processEnv
+
+        let stderrPipe = Pipe()
+        let stdoutPipe = Pipe()
+        process.standardError = stderrPipe
+        process.standardOutput = stdoutPipe
+
+        // Hop a MainActor antes de arrancar para que ConversionStore registre
+        // el Process en su map. Una vez registrado, el botón cancelar puede
+        // llamar terminate() en cualquier momento.
+        if let onStart {
+            await MainActor.run { onStart(process) }
+        }
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = args
-
-            var processEnv = ProcessInfo.processInfo.environment
-            processEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-            processEnv["PYTHONWARNINGS"] = "ignore"
-            for (key, value) in env { processEnv[key] = value }
-            process.environment = processEnv
-
-            let stderrPipe = Pipe()
-            let stdoutPipe = Pipe()
-            process.standardError = stderrPipe
-            process.standardOutput = stdoutPipe
-
             process.terminationHandler = { proc in
                 let stderr = String(
                     data: stderrPipe.fileHandleForReading.readDataToEndOfFile(),

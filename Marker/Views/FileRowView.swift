@@ -4,6 +4,7 @@ import AppKit
 struct FileRowView: View {
     let item: PDFItem
     var onRemove: () -> Void
+    var onCancel: () -> Void
 
     @State private var showingError = false
     @State private var isHovering = false
@@ -63,14 +64,14 @@ struct FileRowView: View {
 
     @ViewBuilder
     private var removeButton: some View {
-        if isHovering && item.status != .converting {
-            Button(action: onRemove) {
+        if isHovering {
+            Button(action: { item.status == .converting ? onCancel() : onRemove() }) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
                     .font(.body)
             }
             .buttonStyle(.plain)
-            .help("Quitar de la lista")
+            .help(item.status == .converting ? "Cancelar conversión" : "Quitar de la lista")
             .transition(.opacity)
         } else {
             // Reserva el ancho del botón para que el resto de la fila no

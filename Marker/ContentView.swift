@@ -32,8 +32,12 @@ struct ContentView: View {
 
     private var fileList: some View {
         List(store.items) { item in
-            FileRowView(item: item, onRemove: { store.remove(id: item.id) })
-                .listRowInsets(EdgeInsets())
+            FileRowView(
+                item: item,
+                onRemove: { store.remove(id: item.id) },
+                onCancel: { store.cancel(id: item.id) }
+            )
+            .listRowInsets(EdgeInsets())
         }
         .listStyle(.plain)
     }
