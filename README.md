@@ -79,7 +79,7 @@ Si prefieres compilar tú la app en lugar de descargar el binario:
 ```bash
 # Dependencias
 brew install xcodegen
-pip3 install google-genai
+pip3 install 'google-genai==2.6.0'
 
 # Clonar y generar proyecto Xcode
 git clone https://github.com/DanielBCNA/Marker.git

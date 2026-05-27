@@ -118,7 +118,7 @@ jobs:
           # pip install fuera de un venv. El runner es efimero, asi que
           # --break-system-packages es la via mas simple.
           python3 -m pip install --quiet --break-system-packages --upgrade pip
-          python3 -m pip install --quiet --break-system-packages cryptography
+          python3 -m pip install --quiet --break-system-packages -r scripts/requirements.txt
           python3 scripts/sign_and_appcast.py
           echo "---appcast.xml---"
           cat appcast.xml
