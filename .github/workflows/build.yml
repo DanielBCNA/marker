@@ -37,7 +37,7 @@ jobs:
           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             V="${GITHUB_REF#refs/tags/v}"
           else
-            V="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+            V="build-${GITHUB_RUN_NUMBER}"
           fi
           echo "marketing=$V" >> "$GITHUB_OUTPUT"
           echo "build=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
