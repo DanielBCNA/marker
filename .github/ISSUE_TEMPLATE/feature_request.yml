@@ -1,0 +1,29 @@
+name: Proponer una mejora
+description: Sugerir una característica o cambio.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ¿Qué problema resolvería?
+      description: Describe la situación que te lleva a pedir esto. ¿Qué intentas hacer?
+      placeholder: Cuando convierto carpetas con subcarpetas, los PDFs de las subcarpetas no entran.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta
+      description: Cómo te imaginarías la solución. No tiene por qué ser técnica.
+      placeholder: Que al arrastrar una carpeta, Marker descienda recursivamente buscando todos los PDFs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que has probado (opcional)
+    validations:
+      required: false

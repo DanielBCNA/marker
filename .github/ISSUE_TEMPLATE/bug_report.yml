@@ -1,0 +1,52 @@
+name: Reportar un bug
+description: Algo no funciona como debería.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: ¿Qué pasó?
+      description: Describe el problema lo más concreto que puedas. Si recibiste un mensaje de error, pégalo aquí.
+      placeholder: Al arrastrar un PDF y pulsar Convertir, la fila se queda en "Convirtiendo" para siempre.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: ¿Cómo puedo provocar el mismo bug?
+      placeholder: |
+        1. Abro Marker.
+        2. Arrastro `foo.pdf` (20 páginas).
+        3. Pulso Convertir.
+        4. Espero 10 minutos. No pasa nada.
+    validations:
+      required: true
+
+  - type: input
+    id: marker_version
+    attributes:
+      label: Versión de Marker
+      description: La encuentras en **menú Marker → Acerca de Marker**.
+      placeholder: "1.2.3"
+    validations:
+      required: true
+
+  - type: input
+    id: macos_version
+    attributes:
+      label: Versión de macOS
+      description: Menú Apple → Acerca de este Mac.
+      placeholder: "14.5 Sonoma"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs o capturas (opcional)
+      description: Si tienes capturas o mensajes de Console.app filtrando por `com.marker.app`, pégalos aquí.
+    validations:
+      required: false
