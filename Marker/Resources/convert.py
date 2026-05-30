@@ -41,11 +41,14 @@ RETRY_DELAYS = [8, 20, 45]
 # esperar indefinidamente.
 MAX_UPLOAD_WAIT_SECONDS = 120
 
-# Generación determinística (temperature=0) y output como Markdown nativo
-# para que el modelo no envuelva la respuesta en ```markdown ... ```.
-# max_output_tokens generoso para earnings calls largas (~50 páginas).
+# Generación determinística (temperature=0). response_mime_type debe ser
+# uno de los que acepta Gemini (text/plain, application/json, application/
+# xml, application/yaml, text/x.enum). Markdown es text/plain: usábamos
+# "text/markdown" pero la API empezó a rechazarlo con 400 INVALID_ARGUMENT
+# (2026-05). strip_fences() limpia la valla ```markdown si el modelo la
+# añade. max_output_tokens generoso para earnings calls largas (~50 págs).
 GENERATION_CONFIG = types.GenerateContentConfig(
-    response_mime_type="text/markdown",
+    response_mime_type="text/plain",
     temperature=0.0,
     max_output_tokens=32768,
 )
