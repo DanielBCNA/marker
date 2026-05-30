@@ -16,7 +16,7 @@ Pensada originalmente para transcripciones de _earnings calls_, pero funciona co
 - **Cadena de fallback de modelos**: si la cuota gratuita del modelo más holgado se agota, salta automáticamente al siguiente.
 - **Reintentos inteligentes**: distingue errores de cuota diaria (no merece la pena reintentar) de errores transitorios (sí).
 - **Auto-actualización**: la propia app comprueba si hay versión nueva y se actualiza con un click. Verificación criptográfica con Ed25519.
-- **API key en Keychain**: tu clave de Gemini se guarda en el llavero del sistema, nunca toca el disco en claro.
+- **API key local**: tu clave de Gemini se guarda en `~/Library/Application Support/Marker/`, con permisos restringidos a tu usuario. No sale de tu Mac salvo hacia la propia API de Gemini.
 - **Output junto al PDF**: por cada `Foo.pdf` escribe `MD/Foo.md` en una subcarpeta `MD/` al lado del original.
 
 ## Requisitos
@@ -33,7 +33,7 @@ Pensada originalmente para transcripciones de _earnings calls_, pero funciona co
    xattr -cr /Applications/Marker.app
    ```
    A partir de ahí, doble click la abre normal.
-4. Al arrancar te pedirá tu API key de Gemini. Pégala y se guarda en el Keychain.
+4. Al arrancar te pedirá tu API key de Gemini. Pégala y se guarda en una carpeta protegida de tu Mac (`~/Library/Application Support/Marker/`).
 
 A partir de la primera instalación, las futuras versiones se actualizan solas vía la app — no tienes que volver a bajar nada manualmente.
 

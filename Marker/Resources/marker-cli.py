@@ -4,8 +4,9 @@ de comandos. Pensado para usarse como Quick Action de Finder.
 
 Uso: marker-cli <pdf> [<pdf>...]
 
-- Lee la API key de Gemini del Keychain del sistema (servicio
-  com.marker.app, cuenta GEMINI_API_KEY) — la misma que guarda la app.
+- Lee la API key de Gemini del archivo que guarda la app
+  (~/Library/Application Support/Marker/api_key), o de la variable de
+  entorno GEMINI_API_KEY.
 - Para cada PDF, crea una subcarpeta MD/ junto al PDF y escribe el
   archivo .md ahí.
 - Muestra una notificación del sistema con el resumen al terminar.
@@ -16,6 +17,26 @@ import sys
 
 
 def get_api_key():
+    # 1. Variable de entorno (la app la inyecta; en Finder no suele estar).
+    env = os.environ.get("GEMINI_API_KEY")
+    if env and env.strip():
+        return env.strip()
+
+    # 2. Archivo gestionado por la app (mismo que lee el lado Swift).
+    for path in (
+        os.path.expanduser("~/Library/Application Support/Marker/api_key"),
+        os.path.expanduser("~/.config/marker/api_key"),
+    ):
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                value = handle.read().strip()
+                if value:
+                    return value
+        except OSError:
+            pass
+
+    # 3. Último recurso: Keychain heredado de versiones antiguas. Puede
+    #    pedir autorización; sólo se llega aquí si no hay archivo ni env.
     try:
         out = subprocess.check_output(
             [
@@ -26,9 +47,12 @@ def get_api_key():
             ],
             stderr=subprocess.DEVNULL,
         )
-        return out.decode().strip()
+        value = out.decode().strip()
+        if value:
+            return value
     except subprocess.CalledProcessError:
-        return None
+        pass
+    return None
 
 
 def notify(title, message):
@@ -84,8 +108,8 @@ def main(argv):
     key = get_api_key()
     if not key:
         fatal(
-            "GEMINI_API_KEY no encontrada en Keychain. "
-            "Ábrela en Marker.app → Settings y guarda tu key."
+            "GEMINI_API_KEY no encontrada. "
+            "Abre Marker.app → Settings y guarda tu key."
         )
 
     convert_py = locate_convert_py()

@@ -30,7 +30,7 @@ struct SettingsView: View {
             } header: {
                 Text("Google Gemini")
             } footer: {
-                Text("Se guarda en el llavero del sistema. Obtén la key en aistudio.google.com/apikey.")
+                Text("Se guarda en una carpeta protegida de tu Mac. Obtén la key en aistudio.google.com/apikey.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -38,18 +38,18 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 480, height: 220)
         .onAppear {
-            apiKey = KeychainStore.loadAPIKey() ?? ""
+            apiKey = APIKeyStore.load() ?? ""
         }
     }
 
     private func save() {
-        let ok = KeychainStore.saveAPIKey(apiKey)
-        savedFeedback = ok ? "Guardado en Keychain" : "Error al guardar"
+        let ok = APIKeyStore.save(apiKey)
+        savedFeedback = ok ? "Guardada" : "Error al guardar"
         if ok { store.refreshAPIKeyStatus() }
     }
 
     private func clear() {
-        KeychainStore.delete()
+        APIKeyStore.delete()
         apiKey = ""
         savedFeedback = "Borrado"
         store.refreshAPIKeyStatus()

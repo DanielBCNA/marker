@@ -16,7 +16,7 @@ struct OnboardingSheet: View {
                 Text("Configura tu API key de Gemini")
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("Marker convierte los PDFs llamando a Google Gemini. Pega tu API key una vez y queda guardada en el Keychain del sistema.")
+                Text("Marker convierte los PDFs llamando a Google Gemini. Pega tu API key una vez y queda guardada en una carpeta protegida de tu Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -52,11 +52,11 @@ struct OnboardingSheet: View {
     private func save() {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        if KeychainStore.saveAPIKey(trimmed) {
+        if APIKeyStore.save(trimmed) {
             errorMessage = nil
             onSaved()
         } else {
-            errorMessage = "No se pudo guardar en el Keychain. Prueba de nuevo."
+            errorMessage = "No se pudo guardar la API key. Prueba de nuevo."
         }
     }
 }
