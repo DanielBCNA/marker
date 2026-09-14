@@ -27,10 +27,22 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 # Fallback chain ordered by RPD (Requests Per Day) descending — el primero
 # es el que más cuota diaria tiene, así que lo gastamos primero. Si tus
 # cuotas cambian (ai.google.dev → API → Quotas) reordena esta lista.
+#
+# Reescrita 2026-09-14: Google retira gemini-2.5-flash-lite y
+# gemini-2.5-flash (fecha en ai.google.dev/gemini-api/docs/deprecations
+# aún sin confirmar el 2026-09-14, pero la migración se adelanta porque
+# ambos ya no son la apuesta a futuro). gemini-3.1-flash-lite se queda tal
+# cual (500 RPD confirmado, sin fecha de retirada). El hueco lo llena
+# gemini-3.5-flash-lite, publicado por Google en julio de 2026 y sin fecha
+# de retirada — el escalón que la memoria pedía esperar. Los RPD de
+# gemini-3.5-flash-lite y gemini-3.5-flash no están confirmados en cuenta
+# real (verificar en ai.google.dev → API → Quotas y reordenar si hace
+# falta); el orden asume que los "flash-lite" siguen dando más cuota que
+# los "flash" a secas, como en la cadena anterior.
 MODELS = [
-    "gemini-3.1-flash-lite",          # 500 RPD
-    "gemini-2.5-flash-lite",          # 20 RPD
-    "gemini-2.5-flash",               # 20 RPD
+    "gemini-3.1-flash-lite",          # 500 RPD (confirmado)
+    "gemini-3.5-flash-lite",          # RPD sin confirmar, sin fecha de retirada
+    "gemini-3.5-flash",               # RPD sin confirmar, sin fecha de retirada
     "gemini-3-flash-preview",         # 20 RPD, último recurso
 ]
 MAX_RETRIES = 3
