@@ -117,12 +117,14 @@ jobs:
             echo "::error::Falta el secret SPARKLE_PRIVATE_KEY. Anadelo en Settings > Secrets and variables > Actions."
             exit 1
           fi
-          # macos-15 trae Python 3.13 con PEP 668 activo, que bloquea
-          # pip install fuera de un venv. El runner es efimero, asi que
-          # --break-system-packages es la via mas simple.
-          python3 -m pip install --quiet --break-system-packages --upgrade pip
-          python3 -m pip install --quiet --break-system-packages -r scripts/requirements.txt
-          python3 scripts/sign_and_appcast.py
+          # macos-15 trae Python con PEP 668 activo, que bloquea pip install
+          # fuera de un venv. Desde oct-2026 el pip de Homebrew ya no se deja
+          # actualizar con --break-system-packages (no tiene RECORD), asi que
+          # todo va en un venv propio.
+          python3 -m venv .venv-sign
+          .venv-sign/bin/python -m pip install --quiet --upgrade pip
+          .venv-sign/bin/python -m pip install --quiet -r scripts/requirements.txt
+          .venv-sign/bin/python scripts/sign_and_appcast.py
           echo "---appcast.xml---"
           cat appcast.xml
 

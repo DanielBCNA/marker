@@ -33,3 +33,4 @@ __pycache__/
 
 # Claude Code (local settings, transcripts)
 .claude/
+.venv-sign/
