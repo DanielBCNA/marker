@@ -68,7 +68,7 @@ Implicaciones:
 ## Cómo funciona por dentro
 
 - App nativa SwiftUI; el motor de conversión es un script Python (`convert.py`) que llama al SDK `google-genai`.
-- Cadena de modelos: Gemini 3.1 flash-lite → 2.5 flash-lite → 2.5 flash → 3 flash preview. Ordenada por RPD (requests per day) descendente para gastar primero la cuota gratuita más holgada.
+- Cadena de modelos: Gemini 3.1 flash-lite → 3.5 flash-lite → 3.5 flash → 3 flash preview. Ordenada por RPD (requests per day) descendente para gastar primero la cuota gratuita más holgada.
 - Generación determinística (`temperature=0`, `response_mime_type="text/markdown"`) para reproducibilidad.
 - Auto-update vía [Sparkle 2](https://sparkle-project.org/) con firmas Ed25519. La app valida criptográficamente cada update antes de instalarlo.
 
@@ -79,7 +79,7 @@ Si prefieres compilar tú la app en lugar de descargar el binario:
 ```bash
 # Dependencias
 brew install xcodegen
-pip3 install 'google-genai==2.6.0'
+pip3 install 'google-genai==2.33.0'
 
 # Clonar y generar proyecto Xcode
 git clone https://github.com/DanielBCNA/Marker.git
