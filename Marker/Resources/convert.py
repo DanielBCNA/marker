@@ -28,19 +28,20 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 # es el que más cuota diaria tiene, así que lo gastamos primero. Si tus
 # cuotas cambian (ai.google.dev → API → Quotas) reordena esta lista.
 #
-# Reescrita 2026-09-14 con la tabla de ai.google.dev/gemini-api/docs/deprecations:
-# los 2.5 salen de la cadena por ser la generación anterior, no por retirada
-# (ninguno la tiene anunciada). Retiradas anunciadas de lo que queda:
-# gemini-3.1-flash-lite el 2027-05-07 (sustituto: gemini-3.5-flash-lite);
-# gemini-3-flash-preview sin fecha, pero Google recomienda gemini-3.6-flash.
-# Cuotas de 3.5-flash-lite y 3.5-flash sin confirmar en la cuenta real: el
-# orden asume que un flash-lite da más cuota diaria que un flash.
-# Un modelo que falle por cualquier motivo se salta, así que un escalón
-# muerto no rompe la conversión.
+# Revisada 2026-10-23 contra client.models.list() de la cuenta real y con
+# un PDF de prueba convertido por cada modelo (todos correctos). Retiradas
+# anunciadas: gemini-3.1-flash-lite el 2027-05-07 (sustituto:
+# gemini-3.5-flash-lite); gemini-3-flash-preview sin fecha, Google recomienda
+# gemini-3.6-flash. gemini-3.8-flash existe pero tardó 37 s frente a 5-11 s
+# del resto, así que no entra. Cuotas de 3.5-flash-lite, 3.6-flash y
+# 3.5-flash sin confirmar: el orden asume que un flash-lite da más cuota
+# diaria que un flash. Un modelo que falle por cualquier motivo se salta,
+# así que un escalón muerto no rompe la conversión.
 MODELS = [
     "gemini-3.1-flash-lite",          # 500 RPD (confirmado), se retira 2027-05-07
-    "gemini-3.5-flash-lite",          # RPD sin confirmar
-    "gemini-3.5-flash",               # RPD sin confirmar
+    "gemini-3.5-flash-lite",          # RPD sin confirmar, ~5 s
+    "gemini-3.6-flash",               # RPD sin confirmar, ~10 s
+    "gemini-3.5-flash",               # RPD sin confirmar, ~11 s
     "gemini-3-flash-preview",         # 20 RPD, último recurso
 ]
 MAX_RETRIES = 3
@@ -215,7 +216,7 @@ def convert(pdf_path, out_path):
         raise RuntimeError(f"Fallo al procesar en Gemini: {uploaded.state}")
 
     contents = [uploaded, PROMPT]
-    last_error = None
+    failures = []
     for model in MODELS:
         text, error = try_generate(client, model, contents)
         if text is not None:
@@ -226,18 +227,17 @@ def convert(pdf_path, out_path):
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(strip_fences(text))
             return
-        if error == "quota":
-            last_error = f"Cuota agotada en {model}"
-            continue
-        last_error = error
-        continue
+        reason = "cuota agotada" if error == "quota" else (error or "error desconocido")
+        failures.append(f"{model}: {reason[:120]}")
 
     try:
         client.files.delete(name=uploaded.name)
     except Exception:
         pass
 
-    raise RuntimeError(last_error or "Todos los modelos fallaron")
+    # Un fallo por modelo, para saber si es cuota, un modelo retirado o la
+    # red sin tener que reproducirlo.
+    raise RuntimeError("Todos los modelos fallaron:\n" + "\n".join(failures))
 
 
 if __name__ == "__main__":
